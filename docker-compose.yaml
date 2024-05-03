@@ -1,0 +1,30 @@
+version: "3.8"
+services:
+  kurs-db:
+    container_name: kurs-db
+    image: postgres:16.1-alpine3.19
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5432:5432"
+    networks:
+      - kurs
+
+  kurs-server:
+    container_name: kurs-server
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - kurs-db
+    ports:
+      - "8080:8080"
+    environment:
+      DB_ADDR: "postgresql://postgres:secret@kurs-db/postgres?sslmode=disable"
+      TOKEN_SECRET: "SECRET"
+    networks:
+      - kurs
+
+networks:
+  kurs:
