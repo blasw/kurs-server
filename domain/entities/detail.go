@@ -1,6 +1,6 @@
 package entities
 
 type Detail struct {
-	Id   uint   `gorm:"primaryKey"`
+	ID   uint   `gorm:"primaryKey"`
 	Name string `gorm:"not null"`
 }

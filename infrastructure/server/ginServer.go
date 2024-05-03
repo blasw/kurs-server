@@ -27,20 +27,25 @@ func NewGinServer(logger *zap.Logger, uc *domain.UseCases, tokenizer *tokens.Jwt
 
 func (s *GinServer) SetupRoutes() {
 	ctr := controllers.CreateNewController(s.logger, s.cases, s.tokenizer)
+	// create orders, order groups
 
-	s.engine.GET("/rating/create", ctr.CreateRating) // TODO: implement this
+	s.engine.POST("/reviews/create", ctr.CreateReview) //TODO: implement this (for authorized user)
+	// s.engine.DELETE("/reviews/delete", ctr.DeleteReview) // POHUI??
 
-	s.engine.POST("/categories/create", ctr.CreateCategory) // TODO: should create details for them in one request
-	s.engine.GET("/categories/get", ctr.GetCategories)
-	s.engine.DELETE("/categories/delete", ctr.DeleteCategory)
+	s.engine.GET("/rating/create", ctr.CreateRating)   // TODO: implement this (for authorized user)
+	s.engine.DELETE("rating/delete", ctr.DeleteRating) //TODO: implement this (for authorized user)
 
-	s.engine.POST("/products/create", ctr.CreateNewProduct)
-	s.engine.DELETE("/products/delete", ctr.DeleteProduct)
-	s.engine.GET("/products/get", ctr.GetProducts)
-	s.engine.PATCH("/products/edit", ctr.EditProduct)
+	s.engine.POST("/categories/create", ctr.CreateCategory)   // TODO: should create details for them in one request (for admin)
+	s.engine.GET("/categories/get", ctr.GetCategories)        // works fine (for everyone)
+	s.engine.DELETE("/categories/delete", ctr.DeleteCategory) // works fine (for admin)
 
-	s.engine.POST("/users/signup", ctr.CreateNewUser)
-	s.engine.POST("/users/signin", ctr.SignIn)
+	s.engine.POST("/products/create", ctr.CreateNewProduct) //somehow works (for admin)
+	s.engine.DELETE("/products/delete", ctr.DeleteProduct)  //works fine (for admin)
+	s.engine.GET("/products/get", ctr.GetProducts)          //TODO: works fine BUT without details (for everyone)
+	s.engine.PATCH("/products/edit", ctr.EditProduct)       //works fine (for admin)
+
+	s.engine.POST("/users/signup", ctr.CreateNewUser) //works fine i guess (for everyone)
+	s.engine.POST("/users/signin", ctr.SignIn)        //works fine i guess (for everyone)
 }
 
 func (s *GinServer) Run(addr ...string) {

@@ -87,7 +87,7 @@ func (ctr *Controller) CreateNewProduct(c *gin.Context) {
 }
 
 type deleteProductDto struct {
-	ProductID uint `form:"id"`
+	ProductID uint `form:"id" binding:"required"`
 }
 
 func (ctr *Controller) DeleteProduct(c *gin.Context) {
@@ -96,15 +96,15 @@ func (ctr *Controller) DeleteProduct(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	role := c.GetString("Role")
-	if role != "Admin" {
-		c.JSON(http.StatusForbidden, gin.H{"Message": "Permission denied"})
-		return
-	}
+	// role := c.GetString("Role")
+	// if role != "Admin" {
+	// 	c.JSON(http.StatusForbidden, gin.H{"Message": "Permission denied"})
+	// 	return
+	// }
 
 	err := ctr.cases.Products().DeleteById(dto.ProductID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, err.Error())
+		c.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 

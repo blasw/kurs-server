@@ -46,12 +46,12 @@ func (ctr *Controller) GetCategories(c *gin.Context) {
 }
 
 type deleteDto struct {
-	Name string `form:"name" binding:"required"`
+	Name string `json:"name" binding:"required"`
 }
 
 func (ctr *Controller) DeleteCategory(c *gin.Context) {
 	var dto deleteDto
-	if err := c.ShouldBindQuery(&dto); err != nil {
+	if err := c.ShouldBindJSON(&dto); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}

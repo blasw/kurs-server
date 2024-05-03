@@ -1,7 +1,7 @@
 package entities
 
 type DetailValue struct {
-	Id        uint    `gorm:"primaryKey"`
+	ID        uint    `gorm:"primaryKey"`
 	Value     string  `gorm:"not null"`
 	ProductID uint    `gorm:"not null"`
 	DetailID  uint    `gorm:"not null"`

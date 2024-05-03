@@ -1,6 +1,7 @@
 package repos
 
 import (
+	"errors"
 	"kurs-server/domain/entities"
 	"kurs-server/structs"
 
@@ -21,7 +22,14 @@ func (r *ProductRepo) Create(new_product *entities.Product) (uint, error) {
 }
 
 func (r *ProductRepo) DeleteById(productID uint) error {
-	tx := r.Storage.Delete(&entities.Product{ID: productID})
+	var searchResult []entities.Product
+	r.Storage.Where("id = ?", productID).Find(&searchResult)
+
+	if len(searchResult) != 1 {
+		return errors.New("product not found")
+	}
+
+	tx := r.Storage.Delete(&searchResult[0])
 	return tx.Error
 }
 

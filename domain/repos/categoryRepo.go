@@ -1,6 +1,7 @@
 package repos
 
 import (
+	"errors"
 	"kurs-server/domain/entities"
 
 	"gorm.io/gorm"
@@ -48,5 +49,11 @@ func (c *CategoryRepo) DeleteById(categoryId uint) error {
 }
 
 func (c *CategoryRepo) DeleteByName(categoryName string) error {
-	return c.Storage.Delete(&entities.Category{}).Where("name LIKE ?", categoryName).Error
+	var searchResult []entities.Category
+	c.Storage.Where("name = ?", categoryName).Find(&searchResult)
+	if len(searchResult) != 1 {
+		return errors.New("category not found")
+	}
+
+	return c.Storage.Delete(&searchResult[0]).Error
 }

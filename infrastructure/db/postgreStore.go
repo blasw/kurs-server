@@ -51,14 +51,14 @@ func (s *PostgreStore) Init(dsn string) {
 		&entities.Category{},
 		&entities.Detail{},
 		&entities.DetailCategory{},
-		&entities.DetailValue{},
-		&entities.Order{},
-		&entities.OrderGroup{},
 		&entities.Product{},
 		&entities.ProductCategory{},
+		&entities.DetailValue{},
+		&entities.User{},
+		&entities.OrderGroup{},
+		&entities.Order{},
 		&entities.Review{},
 		&entities.Star{},
-		&entities.User{},
 	)
 	if err != nil {
 		s.Logger.Error("Failed to migrate the database", zap.String("Error: ", err.Error()))
