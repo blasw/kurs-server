@@ -50,7 +50,6 @@ func (s *PostgreStore) Init(dsn string) {
 	err = s.db.AutoMigrate(
 		&entities.Category{},
 		&entities.Detail{},
-		&entities.DetailCategory{},
 		&entities.Product{},
 		&entities.ProductCategory{},
 		&entities.DetailValue{},
