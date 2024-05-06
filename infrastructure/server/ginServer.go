@@ -30,7 +30,8 @@ func (s *GinServer) SetupRoutes() {
 	// create orders, order groups
 
 	// s.engine.POST("/details/create", ctr.CreateDetail)
-	// s.engine.GET("/details/get", ctr.GetDetails)
+	s.engine.GET("/details/get", ctr.GetDetails)     //TODO does not work??
+	s.engine.POST("/details/value", ctr.CreateValue) //works fine
 
 	s.engine.POST("/reviews/create", ctr.CreateReview) //TODO: implement this (for authorized user)
 	// s.engine.DELETE("/reviews/delete", ctr.DeleteReview) // POHUI??
@@ -42,10 +43,11 @@ func (s *GinServer) SetupRoutes() {
 	s.engine.GET("/categories/get", ctr.GetCategories)        // works fine (for everyone)
 	s.engine.DELETE("/categories/delete", ctr.DeleteCategory) // works fine (for admin)
 
-	s.engine.POST("/products/create", ctr.CreateNewProduct) //somehow works (for admin) //TODO: update with detailsValues
+	s.engine.POST("/products/create", ctr.CreateNewProduct) //somehow works (for admin)
 	s.engine.DELETE("/products/delete", ctr.DeleteProduct)  //works fine (for admin)
-	s.engine.GET("/products/get", ctr.GetProducts)          //TODO: works fine BUT without details (for everyone)
-	s.engine.PATCH("/products/edit", ctr.EditProduct)       //works fine (for admin)
+	s.engine.GET("/products/get", ctr.GetProducts)          //works fine
+	s.engine.PATCH("/products/edit", ctr.EditProduct)       //TODO: dont know if it works with values
+	s.engine.GET("/products/info", ctr.GetProuctInfo)       //works fine
 
 	s.engine.POST("/users/signup", ctr.CreateNewUser) //works fine i guess (for everyone)
 	s.engine.POST("/users/signin", ctr.SignIn)        //works fine i guess (for everyone)

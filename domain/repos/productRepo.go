@@ -2,6 +2,7 @@ package repos
 
 import (
 	"errors"
+	"fmt"
 	"kurs-server/domain/entities"
 	"kurs-server/structs"
 
@@ -152,6 +153,8 @@ func (r *ProductRepo) GetCategories(productID uint) *[]entities.Category {
 		return nil
 	}
 
+	fmt.Println(categoriesEntries)
+
 	categories := []entities.Category{}
 	for _, entry := range categoriesEntries {
 		var category entities.Category
@@ -160,4 +163,10 @@ func (r *ProductRepo) GetCategories(productID uint) *[]entities.Category {
 	}
 
 	return &categories
+}
+
+func (r *ProductRepo) GetProductByID(ID uint) *entities.Product {
+	var product entities.Product
+	r.Storage.Where("id = ?", ID).First(&product)
+	return &product
 }

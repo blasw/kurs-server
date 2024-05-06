@@ -7,15 +7,22 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 type createNewProductDto struct {
-	Brand       string   `json:"brand" binding:"required"`
-	Name        string   `json:"name" binding:"required"`
-	Price       float32  `json:"price" binding:"required"`
-	Image       []byte   `json:"image"`
-	Description string   `json:"description" binding:"required"`
-	Categories  []string `json:"categories" binding:"required"`
+	Brand       string       `json:"brand" binding:"required"`
+	Name        string       `json:"name" binding:"required"`
+	Price       float32      `json:"price" binding:"required"`
+	Image       []byte       `json:"image"`
+	Description string       `json:"desc" binding:"required"`
+	Categories  []string     `json:"categories" binding:"required"`
+	Details     []detailsDto `json:"details"`
+}
+
+type detailsDto struct {
+	Name  string `json:"name" binding:"required"`
+	Value string `json:"value" binding:"required"`
 }
 
 func (ctr *Controller) CreateNewProduct(c *gin.Context) {
@@ -49,7 +56,7 @@ func (ctr *Controller) CreateNewProduct(c *gin.Context) {
 		Description: dto.Description,
 	}
 
-	ctr.logger.Debug("Creating new product")
+	//creating product
 
 	productID, err := ctr.cases.Products().Create(&newProduct)
 	if err != nil {
@@ -59,7 +66,7 @@ func (ctr *Controller) CreateNewProduct(c *gin.Context) {
 		return
 	}
 
-	ctr.logger.Debug("New product created, creating categories")
+	//creating categories
 
 	for _, category := range dto.Categories {
 		err = ctr.cases.Products().AssignCategoryByName(productID, category)
@@ -71,7 +78,7 @@ func (ctr *Controller) CreateNewProduct(c *gin.Context) {
 		}
 	}
 
-	ctr.logger.Debug("Categories created, commiting")
+	//creating details values
 
 	err = ctr.cases.Commit()
 	if err != nil {
@@ -233,4 +240,66 @@ func (ctr *Controller) EditProduct(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, resp)
+}
+
+type getProductInfoDto struct {
+	ID uint `form:"id" binding:"required"`
+}
+
+type getProductInfoResp struct {
+	ID          uint          `json:"id"`
+	Name        string        `json:"name"`
+	Brand       string        `json:"brand"`
+	Description string        `json:"desc"`
+	Image       []byte        `json:"image"`
+	Price       float32       `json:"price"`
+	Details     []detailsResp `json:"details"`
+}
+
+type detailsResp struct {
+	ID    uint   `json:"id"`
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+func (ctr *Controller) GetProuctInfo(c *gin.Context) {
+	var dto getProductInfoDto
+	if err := c.ShouldBindQuery(&dto); err != nil {
+		c.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// getting product
+	product := ctr.cases.Products().GetProductByID(dto.ID)
+
+	//getting categories
+	productCategories := ctr.cases.Products().GetCategories(dto.ID)
+	ctr.logger.Debug("ProductCategories", zap.Any("struct", productCategories))
+
+	//getting details
+	details := []detailsResp{}
+	for _, category := range *productCategories {
+		detailsForCategory := ctr.cases.Details().GetForCategoryID(category.ID)
+		for _, detail := range detailsForCategory {
+			ctr.logger.Debug("Detail", zap.Any("struct", detail))
+			details = append(details, detailsResp{ID: detail.ID, Name: detail.Name})
+		}
+	}
+
+	//getting details values
+	for i, detail := range details {
+		details[i].Value = ctr.cases.Details().GetValue(detail.ID, dto.ID).Value
+	}
+
+	response := getProductInfoResp{
+		ID:          product.ID,
+		Name:        product.Name,
+		Brand:       product.Brand,
+		Description: product.Description,
+		Image:       product.Image,
+		Price:       product.Price,
+		Details:     details,
+	}
+
+	c.JSON(http.StatusOK, response)
 }

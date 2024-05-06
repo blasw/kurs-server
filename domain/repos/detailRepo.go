@@ -2,6 +2,7 @@ package repos
 
 import (
 	"errors"
+	"fmt"
 	"kurs-server/domain/entities"
 
 	"gorm.io/gorm"
@@ -29,7 +30,7 @@ func (r *DetailRepo) Create(detailName string, categoryName string) error {
 }
 
 // assigns a value to a detailValue
-func (r *DetailRepo) AssignValue(detailID uint, productID uint, value string) error {
+func (r *DetailRepo) CreateValue(detailID uint, productID uint, value string) error {
 	detailValue := entities.DetailValue{
 		Value:     value,
 		ProductID: productID,
@@ -42,8 +43,31 @@ func (r *DetailRepo) AssignValue(detailID uint, productID uint, value string) er
 	return nil
 }
 
+func (r *DetailRepo) GetForCategoryID(categoryID uint) []entities.Detail {
+	fmt.Println("categoryID:", categoryID)
+	var details []entities.Detail
+	err := r.Storage.Where("category_id = ?", categoryID).Find(&details).Error
+	if err != nil {
+		fmt.Println("unable to get details: ", err.Error())
+		return nil
+	}
+
+	fmt.Println(details)
+
+	return details
+}
+
+func (r *DetailRepo) GetValue(detailID uint, productId uint) entities.DetailValue {
+	var detailValue entities.DetailValue
+	err := r.Storage.Where("detail_id = ? AND product_id = ?", detailID, productId).First(&detailValue).Error
+	if err != nil {
+		return entities.DetailValue{}
+	}
+	return detailValue
+}
+
 // gets all details for a given category
-func (r *DetailRepo) GetForCategory(categoryName string) []entities.Detail {
+func (r *DetailRepo) GetForCategoryName(categoryName string) []entities.Detail {
 	var searchCategory entities.Category
 	err := r.Storage.Where("name = ?", categoryName).First(&searchCategory).Error
 	if err != nil {

@@ -51,6 +51,17 @@ type getDto struct {
 	Name string `form:"name"`
 }
 
+type categoryResp struct {
+	ID      uint         `json:"id"`
+	Name    string       `json:"name"`
+	Details []detailResp `json:"details"`
+}
+
+type detailResp struct {
+	ID   uint   `json:"id"`
+	Name string `json:"name"`
+}
+
 func (ctr *Controller) GetCategories(c *gin.Context) {
 	var dto getDto
 	if err := c.ShouldBindQuery(&dto); err != nil {
@@ -62,13 +73,13 @@ func (ctr *Controller) GetCategories(c *gin.Context) {
 
 	ctr.logger.Debug("Found categories", zap.Any("categories", foundCategories))
 
-	result := make([]createDto, len(foundCategories))
+	result := make([]categoryResp, len(foundCategories))
 
 	for i, category := range foundCategories {
-		resultCategory := createDto{Name: category.Name, Details: []detailDto{}}
-		details := ctr.cases.Details().GetForCategory(category.Name)
+		resultCategory := categoryResp{ID: category.ID, Name: category.Name, Details: []detailResp{}}
+		details := ctr.cases.Details().GetForCategoryName(category.Name)
 		for _, detail := range details {
-			resultCategory.Details = append(resultCategory.Details, detailDto{Name: detail.Name})
+			resultCategory.Details = append(resultCategory.Details, detailResp{ID: detail.ID, Name: detail.Name})
 		}
 
 		result[i] = resultCategory
