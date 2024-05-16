@@ -1,8 +1,9 @@
 package structs
 
 type ProductFilters struct {
-	Brand    string
-	Name     string
-	MinPrice float32
-	MaxPrice float32
+	Brand      string
+	Name       string
+	CategoryID uint
+	MinPrice   float32
+	MaxPrice   float32
 }

@@ -2,14 +2,16 @@ package controllers
 
 import (
 	"fmt"
+	"kurs-server/domain/entities"
+	"kurs-server/infrastructure/server/middleware"
+	"kurs-server/structs"
+	"net/http"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
-	"kurs-server/domain/entities"
-	"kurs-server/structs"
-	"net/http"
-	"time"
 )
 
 type createUserDto struct {
@@ -44,18 +46,14 @@ func (ctr *Controller) CreateNewUser(c *gin.Context) {
 		return
 	}
 
-	ctr.logger.Debug("refresh token created")
-
 	//creating new user
 	newUser := &entities.User{
 		Username:     dto.Username,
 		Password:     string(hash),
 		Email:        dto.Email,
-		Role:         "Admin",
+		Role:         "User",
 		RefreshToken: refreshToken,
 	}
-
-	ctr.logger.Debug("new user struct created: ", zap.Any("struct: ", newUser))
 
 	newUserID, err := ctr.cases.Users().Create(newUser)
 	if err != nil {
@@ -63,8 +61,6 @@ func (ctr *Controller) CreateNewUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, err.Error())
 		return
 	}
-
-	ctr.logger.Debug("new user in db created")
 
 	//creating access token
 	accessToken, err := ctr.tokenizer.NewAccessToken(structs.JwtUserClaims{
@@ -83,15 +79,11 @@ func (ctr *Controller) CreateNewUser(c *gin.Context) {
 		return
 	}
 
-	ctr.logger.Debug("new access token created")
-
 	//setting cookies
 	c.SetCookie("access_token", accessToken, 3600*24, "/", "localhost", false, true)
 	c.SetCookie("refresh_token", refreshToken, 3600*24*7, "/", "localhost", false, true)
 
-	ctr.logger.Debug("cookies set")
-
-	resp := gin.H{"username": newUser.Username, "email": newUser.Email}
+	resp := gin.H{"username": newUser.Username, "userid": newUserID, "role": "User", "access_token": accessToken, "refresh_token": refreshToken}
 
 	c.JSON(201, resp)
 }
@@ -107,8 +99,6 @@ func (ctr *Controller) SignIn(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
-
-	ctr.logger.Debug("dto: ", zap.Any("struct: ", dto))
 
 	storedUser, err := ctr.cases.Users().GetByUsername(dto.Username)
 	if err != nil {
@@ -147,16 +137,35 @@ func (ctr *Controller) SignIn(c *gin.Context) {
 		return
 	}
 
-	ctr.logger.Debug("tokens: ", zap.String("tokens: ", accessToken+" <-> "+refreshToken))
-
 	c.SetCookie("access_token", accessToken, 3600*24, "/", "localhost", false, true)
 	c.SetCookie("refresh_token", refreshToken, 3600*24*7, "/", "localhost", false, true)
 
-	c.JSON(http.StatusOK, gin.H{"Message": "Success"})
+	ctr.cases.Users().UpdateUserRefreshToken(dto.Username, refreshToken)
+
+	c.JSON(http.StatusOK, gin.H{"access_token": accessToken, "refresh_token": refreshToken, "userID": storedUser.ID, "username": storedUser.Username, "role": storedUser.Role})
 }
 
-func Validate() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"Message": "Success"})
+type ValidateUserDto struct {
+	AccessToken  string `json:"access_token" binding:"required"`
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}
+
+func (ctr *Controller) ValidateUser(c *gin.Context) {
+	var dto ValidateUserDto
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		c.JSON(http.StatusBadRequest, err.Error())
+		return
 	}
+
+	rToken := dto.RefreshToken
+	aToken := dto.AccessToken
+
+	res, err := middleware.ValidateUser(ctr.cases, ctr.tokenizer, aToken, rToken)
+
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	c.JSON(http.StatusOK, res)
 }

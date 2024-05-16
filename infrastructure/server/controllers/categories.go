@@ -25,8 +25,6 @@ func (ctr *Controller) CreateCategory(c *gin.Context) {
 		return
 	}
 
-	ctr.logger.Debug("Creating new category", zap.Any("dto", dto))
-
 	newCategory := &entities.Category{Name: dto.Name}
 	err := ctr.cases.Categories().Create(newCategory)
 	if err != nil {
@@ -51,17 +49,6 @@ type getDto struct {
 	Name string `form:"name"`
 }
 
-type categoryResp struct {
-	ID      uint         `json:"id"`
-	Name    string       `json:"name"`
-	Details []detailResp `json:"details"`
-}
-
-type detailResp struct {
-	ID   uint   `json:"id"`
-	Name string `json:"name"`
-}
-
 func (ctr *Controller) GetCategories(c *gin.Context) {
 	var dto getDto
 	if err := c.ShouldBindQuery(&dto); err != nil {
@@ -71,15 +58,13 @@ func (ctr *Controller) GetCategories(c *gin.Context) {
 
 	foundCategories := ctr.cases.Categories().GetMany(dto.Name)
 
-	ctr.logger.Debug("Found categories", zap.Any("categories", foundCategories))
-
 	result := make([]categoryResp, len(foundCategories))
 
 	for i, category := range foundCategories {
-		resultCategory := categoryResp{ID: category.ID, Name: category.Name, Details: []detailResp{}}
+		resultCategory := categoryResp{ID: category.ID, Name: category.Name, Details: []detailsResp{}}
 		details := ctr.cases.Details().GetForCategoryName(category.Name)
 		for _, detail := range details {
-			resultCategory.Details = append(resultCategory.Details, detailResp{ID: detail.ID, Name: detail.Name})
+			resultCategory.Details = append(resultCategory.Details, detailsResp{ID: detail.ID, Name: detail.Name})
 		}
 
 		result[i] = resultCategory

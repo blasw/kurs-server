@@ -2,7 +2,6 @@ package repos
 
 import (
 	"errors"
-	"fmt"
 	"kurs-server/domain/entities"
 	"kurs-server/structs"
 
@@ -34,12 +33,16 @@ func (r *ProductRepo) DeleteById(productID uint) error {
 	return tx.Error
 }
 
-func (r *ProductRepo) Get(filters *structs.ProductFilters, limit int, offset int, sort string) ([]entities.Product, error) {
+func (r *ProductRepo) Get(filters *structs.ProductFilters, limit int, offset int, sort string) ([]entities.Product, int64) {
 	var products []entities.Product
 
 	query := r.Storage.Model(&entities.Product{})
+	var count int64
 
 	if filters != nil {
+		if filters.CategoryID != 0 {
+			query = query.Joins("JOIN product_categories ON product_categories.product_id = products.id").Where("product_categories.category_id = ?", filters.CategoryID)
+		}
 		if filters.Brand != "" {
 			query = query.Where("LOWER(brand) LIKE LOWER(?)", "%"+filters.Brand+"%")
 		}
@@ -54,30 +57,24 @@ func (r *ProductRepo) Get(filters *structs.ProductFilters, limit int, offset int
 		}
 	}
 
-	var err error
-
 	switch sort {
 	case "id_desc":
-		err = query.Limit(limit).Offset(offset).Order("id desc").Find(&products).Error
+		query.Limit(limit).Offset(offset).Order("id desc").Find(&products).Count(&count)
 
 	case "id_asc":
-		err = query.Limit(limit).Offset(offset).Order("id asc").Find(&products).Error
+		query.Limit(limit).Offset(offset).Order("id asc").Find(&products).Count(&count)
 
 	case "price_desc":
-		err = query.Limit(limit).Offset(offset).Order("price desc").Find(&products).Error
+		query.Limit(limit).Offset(offset).Order("price desc").Find(&products).Count(&count)
 
 	case "price_asc":
-		err = query.Limit(limit).Offset(offset).Order("price asc").Find(&products).Error
+		query.Limit(limit).Offset(offset).Order("price asc").Find(&products).Count(&count)
 	}
 
-	if err != nil {
-		return nil, err
-	}
-
-	return products, nil
+	return products, count
 }
 
-// Edit TODO: Might work wrong
+// TODO: Might work wrong
 func (r *ProductRepo) Edit(ID uint, Name string, Brand string, Description string, Image []byte, Price float32, Categories []entities.Category) (*entities.Product, error) {
 	var product entities.Product
 
@@ -120,9 +117,18 @@ func (r *ProductRepo) Edit(ID uint, Name string, Brand string, Description strin
 }
 
 func (r *ProductRepo) DeleteCategories(productID uint) error {
-	tx := r.Storage.Delete(&entities.ProductCategory{ProductID: productID})
+	tx := r.Storage.Where("product_id = ?", productID).Delete(&entities.ProductCategory{})
 
 	return tx.Error
+}
+
+func (r *ProductRepo) AssignCategoryByID(productID uint, categoryID uint) error {
+	// assigning found category to a product
+	newProductCategory := entities.ProductCategory{
+		ProductID:  productID,
+		CategoryID: categoryID,
+	}
+	return r.Storage.Create(&newProductCategory).Error
 }
 
 func (r *ProductRepo) AssignCategoryByName(productID uint, categoryName string) error {
@@ -152,8 +158,6 @@ func (r *ProductRepo) GetCategories(productID uint) *[]entities.Category {
 	if tx.Error != nil && categoriesEntries == nil {
 		return nil
 	}
-
-	fmt.Println(categoriesEntries)
 
 	categories := []entities.Category{}
 	for _, entry := range categoriesEntries {

@@ -44,15 +44,12 @@ func (r *DetailRepo) CreateValue(detailID uint, productID uint, value string) er
 }
 
 func (r *DetailRepo) GetForCategoryID(categoryID uint) []entities.Detail {
-	fmt.Println("categoryID:", categoryID)
 	var details []entities.Detail
 	err := r.Storage.Where("category_id = ?", categoryID).Find(&details).Error
 	if err != nil {
 		fmt.Println("unable to get details: ", err.Error())
 		return nil
 	}
-
-	fmt.Println(details)
 
 	return details
 }
@@ -82,4 +79,12 @@ func (r *DetailRepo) GetForCategoryName(categoryName string) []entities.Detail {
 	}
 
 	return details
+}
+
+func (r *DetailRepo) DeleteValues(productID uint) {
+	r.Storage.Where("product_id = ?", productID).Delete(&entities.DetailValue{})
+}
+
+func (r *DetailRepo) EditValue(detailID uint, porductID uint, newValue string) {
+	r.Storage.Model(&entities.DetailValue{}).Where("detail_id = ? AND product_id = ?", detailID, porductID).Update("value", newValue)
 }

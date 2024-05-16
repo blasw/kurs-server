@@ -3,19 +3,24 @@ package middleware
 import (
 	"errors"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt"
-	"go.uber.org/zap"
 	"kurs-server/domain"
 	tokens2 "kurs-server/infrastructure/tokens"
 	"kurs-server/structs"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
+	"go.uber.org/zap"
 )
 
-func JwtGuard(uc *domain.UseCases, jwtTokenizer *tokens2.JwtTokenizer, logger *zap.Logger) gin.HandlerFunc {
+func Guard(uc *domain.UseCases, jwtTokenizer *tokens2.JwtTokenizer, logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		for k, v := range c.Request.Header {
+			fmt.Println(k, ":", v)
+		}
+
 		access_token, err := c.Cookie("access_token")
 		if err != nil {
 			logger.Debug("Unable to find access_token")
@@ -31,26 +36,16 @@ func JwtGuard(uc *domain.UseCases, jwtTokenizer *tokens2.JwtTokenizer, logger *z
 			return
 		}
 
-		logger.Debug("Provided tokens: ", zap.String("tokens: ", access_token+" <-> "+refresh_token))
-
-		results, err := validateUser(uc, jwtTokenizer, access_token, refresh_token)
+		res, err := ValidateUser(uc, jwtTokenizer, access_token, refresh_token)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, err.Error())
 			c.Abort()
 			return
 		}
 
-		if results.Access_Token != "" {
-			c.SetCookie("access_token", results.Access_Token, 3600*24, "", "localhost", false, true)
-		}
-
-		if results.Refresh_Token != "" {
-			c.SetCookie("refresh_token", results.Refresh_Token, 3600*24*7, "", "localhost", false, true)
-		}
-
-		c.Set("ID", results.UserID)
-		c.Set("Username", results.Username)
-		c.Set("Role", results.Role)
+		c.Set("ID", res.UserID)
+		c.Set("Username", res.Username)
+		c.Set("Role", res.Role)
 		c.Next()
 	}
 }
@@ -63,9 +58,12 @@ type validationResults struct {
 	Role          string
 }
 
-func validateUser(uc *domain.UseCases, tokenizer *tokens2.JwtTokenizer, access_token string, refresh_token string) (*validationResults, error) {
+func ValidateUser(uc *domain.UseCases, tokenizer *tokens2.JwtTokenizer, access_token string, refresh_token string) (*validationResults, error) {
+	fmt.Println("access_token: ", access_token)
+	fmt.Println("refresh_token: ", refresh_token)
 	accessClaims, err := tokenizer.ParseAccessToken(access_token)
 	if err == nil && accessClaims != nil {
+		fmt.Println("tokens are valid")
 		//access token is valid
 		user_id, err := strconv.Atoi(accessClaims.ID)
 		if err != nil {
@@ -83,10 +81,12 @@ func validateUser(uc *domain.UseCases, tokenizer *tokens2.JwtTokenizer, access_t
 		return res, nil
 	}
 
+	fmt.Println("access token is invalid")
 	// access token is invalid
 	_, err = tokenizer.ParseRefreshToken(refresh_token)
 	if err != nil {
 		//refresh token is invalid
+		fmt.Println("refresh token is invalid")
 		return nil, errors.New("invalid tokens")
 	}
 
@@ -102,6 +102,8 @@ func validateUser(uc *domain.UseCases, tokenizer *tokens2.JwtTokenizer, access_t
 	if err != nil {
 		return nil, errors.New("")
 	}
+
+	fmt.Println("Updating tokens")
 
 	uc.Users().UpdateUserRefreshToken(user.Username, newRefreshToken)
 

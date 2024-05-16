@@ -11,6 +11,7 @@ type UseCases struct {
 	products   *repos.ProductRepo
 	users      *repos.UserRepo
 	details    *repos.DetailRepo
+	ratings    *repos.RatingRepo
 }
 
 func NewUseCases(storage *gorm.DB) *UseCases {
@@ -27,7 +28,14 @@ func NewUseCases(storage *gorm.DB) *UseCases {
 		details: &repos.DetailRepo{
 			Storage: storage,
 		},
+		ratings: &repos.RatingRepo{
+			Storage: storage,
+		},
 	}
+}
+
+func (uc *UseCases) Ratings() *repos.RatingRepo {
+	return uc.ratings
 }
 
 func (uc *UseCases) Categories() *repos.CategoryRepo {
