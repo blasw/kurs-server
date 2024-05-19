@@ -17,7 +17,7 @@ import (
 type createUserDto struct {
 	Username string `json:"username" binding:"required,min=4,max=32"`
 	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required,min=8,max=100"`
+	Password string `json:"password" binding:"required,min=6,max=100"`
 }
 
 func (ctr *Controller) CreateNewUser(c *gin.Context) {
@@ -57,8 +57,7 @@ func (ctr *Controller) CreateNewUser(c *gin.Context) {
 
 	newUserID, err := ctr.cases.Users().Create(newUser)
 	if err != nil {
-		ctr.logger.Error("Unable to create a new user", zap.String("Error: ", err.Error()))
-		c.JSON(http.StatusInternalServerError, err.Error())
+		c.Status(http.StatusBadRequest)
 		return
 	}
 
@@ -102,7 +101,7 @@ func (ctr *Controller) SignIn(c *gin.Context) {
 
 	storedUser, err := ctr.cases.Users().GetByUsername(dto.Username)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, err.Error())
+		c.JSON(http.StatusNotFound, err.Error())
 		return
 	}
 

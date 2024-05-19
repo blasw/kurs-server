@@ -30,27 +30,38 @@ func (s *GinServer) SetupRoutes() {
 	ctr := controllers.CreateNewController(s.logger, s.cases, s.tokenizer)
 
 	guard := middleware.Guard(s.cases, s.tokenizer, s.logger)
-	// create orders, order groups
 
-	s.engine.POST("/reviews/create", ctr.CreateReview) //TODO: implement this (for authorized user)
-	// s.engine.DELETE("/reviews/delete", ctr.DeleteReview) // POHUI??
+	s.engine.PATCH("/orderGroups/mark", ctr.MarkOrderGroup)
+	s.engine.DELETE("/orderGroups/delete", ctr.DeleteOrderGroup)
 
-	s.engine.POST("/rating/create", ctr.CreateRating)  // TODO: implement this (for authorized user)
-	s.engine.DELETE("rating/delete", ctr.DeleteRating) //TODO: implement this (for authorized user)
+	s.engine.GET("/orders/getAllGroups", ctr.GetAllOrderGroups)
+	s.engine.GET("/orders/getGroups", guard, ctr.GetOrderGroups)   //works fine
+	s.engine.POST("/orders/confirm", guard, ctr.ConfirmOrderGroup) //works fine
+	s.engine.GET("/orders/getCart", guard, ctr.GetCart)            //works fine
+	s.engine.POST("/orders/create", guard, ctr.CreateOrder)        //works fine
+	s.engine.DELETE("/orders/delete", guard, ctr.DeleteOrder)      //works fine
 
-	s.engine.POST("/categories/create", ctr.CreateCategory)   // works fine (for admin)
-	s.engine.GET("/categories/get", ctr.GetCategories)        // works fine (for everyone)
-	s.engine.DELETE("/categories/delete", ctr.DeleteCategory) // works fine (for admin)
+	s.engine.GET("/details/get", ctr.GetDetailsValues) // works fine
 
-	s.engine.POST("/products/create", ctr.CreateNewProduct)  //somehow works (for admin)
-	s.engine.DELETE("/products/delete", ctr.DeleteProduct)   //works fine
-	s.engine.GET("/products/get", guard, ctr.GetProducts)    //works fine
-	s.engine.PATCH("/products/edit", ctr.EditProduct)        //works fine
-	s.engine.GET("/products/info", guard, ctr.GetProuctInfo) //works fine
+	s.engine.POST("/reviews/create", guard, ctr.CreateReview) //works fine
+	s.engine.GET("/reviews/get", ctr.GetReviews)              //works fine
 
-	s.engine.POST("/users/signup", ctr.CreateNewUser) //works fine i guess (for everyone)
-	s.engine.POST("/users/signin", ctr.SignIn)        //works fine i guess (for everyone)
-	s.engine.POST("/users/validate", ctr.ValidateUser)
+	s.engine.POST("/rating/create", ctr.CreateRating) // works fine
+
+	s.engine.POST("/categories/create", ctr.CreateCategory)   // works fine
+	s.engine.GET("/categories/get", ctr.GetCategories)        // works fine
+	s.engine.DELETE("/categories/delete", ctr.DeleteCategory) // works fine
+
+	s.engine.POST("/products/create", ctr.CreateNewProduct)           //works fine
+	s.engine.DELETE("/products/delete", ctr.DeleteProduct)            //works fine
+	s.engine.GET("/products/get", guard, ctr.GetProducts)             //works fine BUT without details filter
+	s.engine.POST("/products/search", guard, ctr.FilteredGetProducts) //works fine WITH details filter
+	s.engine.PATCH("/products/edit", ctr.EditProduct)                 //works fine
+	s.engine.GET("/products/info", guard, ctr.GetProductInfo)         //works fine
+
+	s.engine.POST("/users/signup", ctr.CreateNewUser)  //works fine
+	s.engine.POST("/users/signin", ctr.SignIn)         //works fine
+	s.engine.POST("/users/validate", ctr.ValidateUser) //works fine
 }
 
 func (s *GinServer) Run(addr ...string) {

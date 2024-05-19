@@ -2,8 +2,10 @@ package repos
 
 import (
 	"errors"
+	"fmt"
 	"kurs-server/domain/entities"
 	"kurs-server/structs"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -57,24 +59,93 @@ func (r *ProductRepo) Get(filters *structs.ProductFilters, limit int, offset int
 		}
 	}
 
+	query.Count(&count)
+
 	switch sort {
 	case "id_desc":
-		query.Limit(limit).Offset(offset).Order("id desc").Find(&products).Count(&count)
+		query.Limit(limit).Offset(offset).Order("id desc").Find(&products)
 
 	case "id_asc":
-		query.Limit(limit).Offset(offset).Order("id asc").Find(&products).Count(&count)
+		query.Limit(limit).Offset(offset).Order("id asc").Find(&products)
 
 	case "price_desc":
-		query.Limit(limit).Offset(offset).Order("price desc").Find(&products).Count(&count)
+		query.Limit(limit).Offset(offset).Order("price desc").Find(&products)
 
 	case "price_asc":
-		query.Limit(limit).Offset(offset).Order("price asc").Find(&products).Count(&count)
+		query.Limit(limit).Offset(offset).Order("price asc").Find(&products)
 	}
 
 	return products, count
 }
 
-// TODO: Might work wrong
+func (r *ProductRepo) FilteredGet(offset int, limit int, sort string, search structs.ProductsSearch) ([]entities.Product, int64) {
+	var products []entities.Product
+	var count int64
+
+	query := r.Storage.Model(&entities.Product{}).Preload("Categories").Preload("Details")
+	query = r.applyFilters(query, search)
+
+	query.Count(&count)
+
+	switch sort {
+	case "id_desc":
+		query.Limit(limit).Offset(offset).Order("id desc").Find(&products)
+	case "id_asc":
+		query.Limit(limit).Offset(offset).Order("id asc").Find(&products)
+
+	case "price_desc":
+		query.Limit(limit).Offset(offset).Order("price desc").Find(&products)
+
+	case "price_asc":
+		query.Limit(limit).Offset(offset).Order("price asc").Find(&products)
+
+	default:
+		query.Limit(limit).Offset(offset).Order("id desc").Find(&products)
+	}
+
+	return products, count
+}
+
+func (r *ProductRepo) applyFilters(query *gorm.DB, search structs.ProductsSearch) *gorm.DB {
+	if search.Name != "" {
+		query = query.Where("LOWER(name) LIKE ?", "%"+strings.ToLower(search.Name)+"%")
+	}
+
+	if search.Brand != "" {
+		query = query.Where("LOWER(brand) LIKE ?", "%"+strings.ToLower(search.Brand)+"%")
+	}
+
+	if search.MinPrice > 0 {
+		query = query.Where("price >= ?", search.MinPrice)
+	}
+
+	if search.MaxPrice > 0 {
+		query = query.Where("price <= ?", search.MaxPrice)
+	}
+
+	query = r.applyCategoryFilters(query, search.Categories)
+
+	return query
+}
+
+func (r *ProductRepo) applyCategoryFilters(query *gorm.DB, categories []structs.CategoriesSearch) *gorm.DB {
+	fmt.Println(categories)
+
+	for _, cat := range categories {
+		subQuery := r.Storage.Model(&entities.ProductCategory{}).Select("product_categories.product_id").Where("product_categories.category_id = ?", cat.ID)
+
+		for i, detail := range cat.Details {
+			alias := fmt.Sprintf("dv%d", i)
+			joinCondition := fmt.Sprintf("JOIN detail_values %s ON product_categories.product_id = %s.product_id AND %s.detail_id = ? AND %s.value IN ?", alias, alias, alias, alias)
+			subQuery = subQuery.Joins(joinCondition, detail.ID, detail.Values)
+		}
+
+		query = query.Where("products.id IN (?)", subQuery)
+	}
+
+	return query
+}
+
 func (r *ProductRepo) Edit(ID uint, Name string, Brand string, Description string, Image []byte, Price float32, Categories []entities.Category) (*entities.Product, error) {
 	var product entities.Product
 

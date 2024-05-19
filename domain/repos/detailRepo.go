@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"kurs-server/domain/entities"
+	"kurs-server/structs"
 
 	"gorm.io/gorm"
 )
@@ -52,6 +53,33 @@ func (r *DetailRepo) GetForCategoryID(categoryID uint) []entities.Detail {
 	}
 
 	return details
+}
+
+func (r *DetailRepo) GetUniqueValuesForCategoryID(categoryID uint) ([]structs.DetailValues, error) {
+	var details []entities.Detail
+	if err := r.Storage.Where("category_id = ?", categoryID).Find(&details).Error; err != nil {
+		return nil, err
+	}
+
+	var detailsValues []structs.DetailValues
+	for _, detail := range details {
+		var values []string
+		// Fetch unique values for each detail
+		if err := r.Storage.Model(&entities.DetailValue{}).
+			Select("DISTINCT value").
+			Where("detail_id = ?", detail.ID).
+			Pluck("value", &values).Error; err != nil {
+			return nil, err
+		}
+
+		detailsValues = append(detailsValues, structs.DetailValues{
+			ID:     detail.ID,
+			Name:   detail.Name,
+			Values: values,
+		})
+	}
+
+	return detailsValues, nil
 }
 
 func (r *DetailRepo) GetValue(detailID uint, productId uint) entities.DetailValue {

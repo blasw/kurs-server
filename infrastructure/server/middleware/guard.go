@@ -17,10 +17,6 @@ import (
 
 func Guard(uc *domain.UseCases, jwtTokenizer *tokens2.JwtTokenizer, logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		for k, v := range c.Request.Header {
-			fmt.Println(k, ":", v)
-		}
-
 		access_token, err := c.Cookie("access_token")
 		if err != nil {
 			logger.Debug("Unable to find access_token")
@@ -59,11 +55,8 @@ type validationResults struct {
 }
 
 func ValidateUser(uc *domain.UseCases, tokenizer *tokens2.JwtTokenizer, access_token string, refresh_token string) (*validationResults, error) {
-	fmt.Println("access_token: ", access_token)
-	fmt.Println("refresh_token: ", refresh_token)
 	accessClaims, err := tokenizer.ParseAccessToken(access_token)
 	if err == nil && accessClaims != nil {
-		fmt.Println("tokens are valid")
 		//access token is valid
 		user_id, err := strconv.Atoi(accessClaims.ID)
 		if err != nil {
@@ -81,12 +74,10 @@ func ValidateUser(uc *domain.UseCases, tokenizer *tokens2.JwtTokenizer, access_t
 		return res, nil
 	}
 
-	fmt.Println("access token is invalid")
 	// access token is invalid
 	_, err = tokenizer.ParseRefreshToken(refresh_token)
 	if err != nil {
 		//refresh token is invalid
-		fmt.Println("refresh token is invalid")
 		return nil, errors.New("invalid tokens")
 	}
 
@@ -102,8 +93,6 @@ func ValidateUser(uc *domain.UseCases, tokenizer *tokens2.JwtTokenizer, access_t
 	if err != nil {
 		return nil, errors.New("")
 	}
-
-	fmt.Println("Updating tokens")
 
 	uc.Users().UpdateUserRefreshToken(user.Username, newRefreshToken)
 

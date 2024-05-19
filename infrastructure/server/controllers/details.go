@@ -42,3 +42,23 @@ func (ctr *Controller) CreateValue(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
+
+type getDetailsValuesDto struct {
+	CategoryID uint `form:"categoryid" binding:"required"`
+}
+
+func (ctr *Controller) GetDetailsValues(c *gin.Context) {
+	var dto getDetailsValuesDto
+	if err := c.ShouldBindQuery(&dto); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	detailsValues, err := ctr.cases.Details().GetUniqueValuesForCategoryID(dto.CategoryID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, detailsValues)
+}

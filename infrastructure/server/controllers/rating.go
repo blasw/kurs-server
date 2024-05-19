@@ -35,5 +35,3 @@ func (ctr *Controller) CreateRating(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
-
-func (ctr *Controller) DeleteRating(c *gin.Context) {}

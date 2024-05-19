@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
 )
 
 type createNewProductDto struct {
@@ -107,12 +106,6 @@ func (ctr *Controller) DeleteProduct(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	// role := c.GetString("Role")
-	// if role != "Admin" {
-	// 	c.JSON(http.StatusForbidden, gin.H{"Message": "Permission denied"})
-	// 	return
-	// }
-
 	err := ctr.cases.Products().DeleteById(dto.ProductID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, err.Error())
@@ -120,6 +113,34 @@ func (ctr *Controller) DeleteProduct(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"Message: ": "Success"})
+}
+
+func (ctr *Controller) FilteredGetProducts(c *gin.Context) {
+	var dto structs.ProductsSearch
+	if err := c.ShouldBindJSON(&dto); err != nil {
+		c.JSON(http.StatusBadRequest, err.Error())
+		return
+	}
+
+	userID := c.GetUint("ID")
+
+	limit := dto.Amount
+	offset := (dto.Page - 1) * dto.Amount
+
+	products, count := ctr.cases.Products().FilteredGet(offset, limit, dto.Sort, dto)
+
+	prods := []getProductInfoResp{}
+
+	for _, product := range products {
+		prods = append(prods, ctr.getFullProduct(product.ID, userID))
+	}
+
+	resp := amountResp{
+		Total:    int(count),
+		Products: prods,
+	}
+
+	c.JSON(http.StatusOK, resp)
 }
 
 type getProductsDto struct {
@@ -184,7 +205,6 @@ func (ctr *Controller) GetProducts(c *gin.Context) {
 	offset := dto.Amount * (dto.Page - 1)
 
 	products, count := ctr.cases.Products().Get(&filters, dto.Amount, offset, dto.Sort)
-	ctr.logger.Debug("Records found: ", zap.Int64("Value", count))
 
 	prods := []getProductInfoResp{}
 
@@ -219,7 +239,7 @@ func (ctr *Controller) EditProduct(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
-	//TODO: UPDATE THIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 	if len(dto.Categories) > 0 {
 		ctr.cases.Details().DeleteValues(dto.ID)
 	}
@@ -249,7 +269,7 @@ type getProductInfoDto struct {
 }
 
 // TODO: should return reviews as well
-func (ctr *Controller) GetProuctInfo(c *gin.Context) {
+func (ctr *Controller) GetProductInfo(c *gin.Context) {
 	var dto getProductInfoDto
 	if err := c.ShouldBindQuery(&dto); err != nil {
 		c.JSON(http.StatusBadRequest, err.Error())

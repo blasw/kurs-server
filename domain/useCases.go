@@ -12,6 +12,8 @@ type UseCases struct {
 	users      *repos.UserRepo
 	details    *repos.DetailRepo
 	ratings    *repos.RatingRepo
+	reviews    *repos.ReviewRepo
+	orders     *repos.OrderRepo
 }
 
 func NewUseCases(storage *gorm.DB) *UseCases {
@@ -31,11 +33,25 @@ func NewUseCases(storage *gorm.DB) *UseCases {
 		ratings: &repos.RatingRepo{
 			Storage: storage,
 		},
+		reviews: &repos.ReviewRepo{
+			Storage: storage,
+		},
+		orders: &repos.OrderRepo{
+			Storage: storage,
+		},
 	}
+}
+
+func (uc *UseCases) Orders() *repos.OrderRepo {
+	return uc.orders
 }
 
 func (uc *UseCases) Ratings() *repos.RatingRepo {
 	return uc.ratings
+}
+
+func (uc *UseCases) Reviews() *repos.ReviewRepo {
+	return uc.reviews
 }
 
 func (uc *UseCases) Categories() *repos.CategoryRepo {
