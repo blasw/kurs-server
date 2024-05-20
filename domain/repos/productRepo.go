@@ -129,8 +129,6 @@ func (r *ProductRepo) applyFilters(query *gorm.DB, search structs.ProductsSearch
 }
 
 func (r *ProductRepo) applyCategoryFilters(query *gorm.DB, categories []structs.CategoriesSearch) *gorm.DB {
-	fmt.Println(categories)
-
 	for _, cat := range categories {
 		subQuery := r.Storage.Model(&entities.ProductCategory{}).Select("product_categories.product_id").Where("product_categories.category_id = ?", cat.ID)
 

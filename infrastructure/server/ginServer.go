@@ -31,8 +31,8 @@ func (s *GinServer) SetupRoutes() {
 
 	guard := middleware.Guard(s.cases, s.tokenizer, s.logger)
 
-	s.engine.PATCH("/orderGroups/mark", ctr.MarkOrderGroup)
-	s.engine.DELETE("/orderGroups/delete", ctr.DeleteOrderGroup)
+	s.engine.PATCH("/orderGroups/mark", ctr.MarkOrderGroup)      //works fine
+	s.engine.DELETE("/orderGroups/delete", ctr.DeleteOrderGroup) //works fine
 
 	s.engine.GET("/orders/getAllGroups", ctr.GetAllOrderGroups)
 	s.engine.GET("/orders/getGroups", guard, ctr.GetOrderGroups)   //works fine
